@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ping-Pong</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas></canvas>
+
+    <script>
+        const canvasElement = document.querySelector("canvas"), canvasCtx = canvasElement.getContext("2d")
+
+        const gapX = 10
+        const lineWidth = 15
+
+        const mouse = {
+            x: 0,
+            y: 0
+        }
+
+        const field = {
+            w: window.innerWidth,
+            h: window.innerHeight,
+            draw: function () {
+                //desenha o campo
+                canvasCtx.fillStyle = "#286047"
+                canvasCtx.fillRect(0, 0, this.w, this.h)
+            }
+        }
+
+        const line = {
+            w: 15,
+            h: field.h,
+            draw: function () {
+                //desenha a linha central
+                canvasCtx.fillStyle = '#ffffff'
+                canvasCtx.fillRect(field.w / 2 - this.w / 2, 0, this.w, this.h)
+            }
+        }
+
+        const leftPaddle = {
+            x: gapX,
+            y: 0,
+            w: line.w,
+            h: 200,
+            move: function () {
+                this.y = mouse.y - this.h / 2
+            },
+            draw: function () {
+                //desenha a raquete esquerda 
+                canvasCtx.fillStyle = '#ffffff'
+                canvasCtx.fillRect(this.x, this.y, this.w, this.h)
+                this.move()
+            },
+        }
+
+        const rightPaddle = {
+            x: field.w - line.w - gapX,
+            y: 0,
+            w: line.w,
+            h: 200,
+            speed: 7,
+            move: function () {
+                if (rightPaddle.y + rightPaddle.h / 2 < ball.y + ball.r) {
+                    this.y += this.speed
+                } else {
+                    this.y -= this.speed
+                }
+
+            },
+
+            speedUp: function () {
+                this.speed += 1
+            },
+            draw: function () {
+                //desenha a raquete direita 
+                canvasCtx.fillStyle = '#ffffff'
+                canvasCtx.fillRect(this.x, this.y, this.w, this.h)
+
+                this.move()
+            }
+        }
+
+        const score = {
+            human: 0,
+            computer: 0,
+            increaseHuman: function () {
+                this.human++
+            },
+            increaseComputer: function () {
+                this.computer++
+            },
+            draw: function () {
+                //desenha o placar
+                canvasCtx.textAlign = 'center'
+                canvasCtx.font = 'bold 72px Arial'
+                canvasCtx.textBaseline = 'top'
+                canvasCtx.fillStyle = '#01341D'
+                canvasCtx.fillText(this.human, field.w / 4, 50)
+                canvasCtx.fillText(this.computer, field.w / 4 + field.w / 2, 50)
+            },
+        }
+
+        const ball = {
+            x: 50,
+            y: 0,
+            r: 20,
+            speed: 10,
+            directionX: 1,
+            directionY: 1,
+            calcPosition: function () {
+
+                //verifica se o jogador 1 fez ponto
+                if (this.x > field.w - rightPaddle.w - gapX - this.r) {
+                    //verifica se a raquete direita está na posição Y da bola
+                    if (this.y + this.r > rightPaddle.y && this.y - this.r < rightPaddle.y + rightPaddle.h) {
+                        //rebate a bola invertendo o eixo X
+                        this.reverseX()
+
+                    } else {
+                        //pontua o jogador 1
+                        score.increaseHuman()
+                        this.initialBall()
+                    }
+                }
+
+                //verifica se o jogador 2 fez ponto
+                if (this.x < this.r + gapX + leftPaddle.w) {
+                    //verifica se a raqueta esquerda está na posição Y da bola
+                    if (
+                        this.y + this.r > leftPaddle.y && this.y - this.r < leftPaddle.y + leftPaddle.h) {
+                        //rebate a bola invertendo o sinal de X
+                        this.reverseX()
+                    } else {
+                        //pontuar o jogador 2
+                        score.increaseComputer()
+                        this.initialBall()
+                    }
+                }
+
+                //verifica as laterais superior e inferior do campo
+                if (
+                    (this.y - this.r < 0 && this.directionY < 0) ||
+                    (this.y > field.h - this.r && this.directionY > 0)
+                ) {
+                    //rebate a bola ivertendo o sinal do eixo Y
+                    this.reverseY()
+                }
+            },
+
+            reverseX: function () {
+                this.directionX *= -1
+            },
+
+            reverseY: function () {
+                this.directionY *= -1
+            },
+
+            //diminui o tamanho da raquete esquerda
+            leftPaddleHeight: function () {
+                leftPaddle.h -= 2
+            },
+
+            resetLeftPaddle: function () {
+                if (leftPaddle.h < 80) {
+                    leftPaddle.h = 200
+                }
+            },
+
+            //aumenta a velocidade da bola
+            speedUp: function () {
+                this.speed += 2
+            },
+
+            //reseta a velocidade da bola
+            resetSpeed: function () {
+                if (this.speed > 24) {
+                    this.speed = 10
+                    rightPaddle.speed = 7
+                }
+            },
+
+            resetScore: function() {
+                if (score.human > 10 || score.computer > 10) {
+                    score.human = 0
+                    score.computer = 0
+
+                    ball.speed = 10
+
+                }
+            },
+
+            initialBall: function () {
+                this.leftPaddleHeight()
+                this.speedUp()
+                rightPaddle.speedUp()
+                this.resetSpeed()
+                this.resetScore()
+                this.resetLeftPaddle()
+
+                this.x = field.w / 2
+                this.y = field.h / 2
+            },
+            move: function () {
+                this.x += this.directionX * this.speed
+                this.y += this.directionY * this.speed
+            },
+            draw: function () {
+                //desenha a bolinha
+                canvasCtx.fillStyle = '#ffffff'
+                canvasCtx.beginPath()
+                canvasCtx.arc(this.x, this.y, this.r, 0, 2 * Math.PI, false)
+                canvasCtx.fill()
+
+                this.calcPosition()
+
+                this.move()
+            }
+        }
+
+
+        function setup() {
+            canvasElement.width = canvasCtx.width = field.w
+            canvasElement.height = canvasCtx.height = field.h
+        }
+
+        function draw() {
+
+            field.draw()
+
+            line.draw()
+
+            leftPaddle.draw()
+
+            rightPaddle.draw()
+
+            score.draw()
+
+            ball.draw()
+
+        }
+
+
+        window.animateFrame = (function () {
+            return (
+                window.requestAnimationFrame ||
+                window.webkitRequestAnimationFrame ||
+                window.mozRequestAnimationFrame ||
+                window.oRequestAnimationsFrame ||
+                window.msRequestAnimationFrame ||
+                function (callback) {
+                    return window.setTimeout(callback, 1000 / 60)
+                }
+            )
+        })()
+
+        function main() {
+            animateFrame(main)
+            draw()
+        }
+
+        setup()
+        main()
+
+        canvasElement.addEventListener('mousemove', function (e) {
+            mouse.x = e.pageX
+            mouse.y = e.pageY
+        })
+    </script>
+</body>
+
+</html>
